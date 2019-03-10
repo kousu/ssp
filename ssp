@@ -26,9 +26,14 @@ function privnote {
   # privnote passwords are 9 base64 digits
   password=$(openssl rand -base64 8 | cut -c 1-9) 
 
+  # TODO: openssl enc complains that
+  # > *** WARNING : deprecated key derivation used.
+  # > Using -iter or -pbkdf2 would be better.
+  # but using those seems to be incompatible with privnote?
+  # and you can't seem to specify -md sha256 without breaking it either.
   data=$(cat - | password="$password" openssl enc -e -aes-256-cbc -pass env:password -a -md md5)
 
-  # notice: /legacy. As of 2019, this seems to be what privnote wants.
+  # TODO: privnote has started using https://privnote.com/legacy/ as of 2019, which suggests they're changing their algorithm
   note_link=$(curl -s 'https://privnote.com/' \
     -H 'X-Requested-With: XMLHttpRequest' \
     --data-urlencode "data=$data" \
