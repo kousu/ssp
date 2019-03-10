@@ -1,12 +1,12 @@
 #!/bin/sh
-# dependencies: openssl, curl
+# dependencies: openssl, curl, jq
 
 # TODO: tor 
 # TODO: share.riseup.net
 # TODO: privnote
 
 set -e
-set -x # DEBUG
+#set -x # DEBUG
 set -o pipefail
 
 ## Each of these functions takes a message to upload on stdin and outputs its URL on stdout
@@ -17,4 +17,22 @@ et the #  https://dpaste.de - one time pastes (though mostly targetted at progra
   curl -F 'expires=onetime' -F 'content=<-' -F 'format=url' https://dpaste.de/api/
 }
 
+function privnote {
+  # https://privnote.com - end-to-end-encrypted, self-destructing notes
+  # https://stackoverflow.com/a/46841303
+  
+  # privnote passwords are 9 base64 digits
+  password=$(openssl rand -base64 8 | cut -c 1-9) 
+
+  data=$(cat - | password="$password" openssl enc -e -aes-256-cbc -pass env:password -a -md md5)
+
+  # notice: /legacy. As of 2019, this seems to be what privnote wants.
+  note_link=$(curl -s 'https://privnote.com/' \
+    -H 'X-Requested-With: XMLHttpRequest' \
+    --data-urlencode "data=$data" \
+    --data "has_manual_pass=false&duration_hours=0&dont_ask=false&data_type=T&notify_email=&notify_ref=" \
+    | tee output | jq -r '.note_link')
+  note_link="${note_link}#${password}"
+  echo $note_link
+}
 
