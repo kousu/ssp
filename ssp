@@ -40,7 +40,7 @@ function privnote {
     -H 'X-Requested-With: XMLHttpRequest' \
     --data-urlencode "data=$data" \
     --data "has_manual_pass=false&duration_hours=0&dont_ask=false&data_type=T&notify_email=&notify_ref=" \
-    | tee output | jq -r '.note_link')
+    | jq -r '.note_link')
   note_link="${note_link}#${password}"
   echo $note_link
 }
