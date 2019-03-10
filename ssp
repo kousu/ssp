@@ -1,0 +1,20 @@
+#!/bin/sh
+# dependencies: openssl, curl
+
+# TODO: tor 
+# TODO: share.riseup.net
+# TODO: privnote
+
+set -e
+set -x # DEBUG
+set -o pipefail
+
+## Each of these functions takes a message to upload on stdin and outputs its URL on stdout
+# Most of them should be one-time and/or encrypted pastebins.
+
+function dpaste {
+et the #  https://dpaste.de - one time pastes (though mostly targetted at programmers)
+  curl -F 'expires=onetime' -F 'content=<-' -F 'format=url' https://dpaste.de/api/
+}
+
+
