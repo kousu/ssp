@@ -9,6 +9,8 @@ set -e
 #set -x # DEBUG
 set -o pipefail
 
+COUNT=5
+
 ## Each of these functions takes a message to upload on stdin and outputs its URL on stdout
 # Most of them should be one-time and/or encrypted pastebins.
 
@@ -43,3 +45,13 @@ function privnote {
   echo $note_link
 }
 
+
+PASTEBINS="dpaste privnote"
+
+#########
+# construct a randomized pipeline of the pastebins (chosen with replacement)
+# TODO: shuf is a gnuism; it should be rewritable in terms of awk/sed/sort -R
+# the "cat" here is because this loop ends up sticking an extra pipe on the front
+cmd=""cat"
+$((for p in $PASTEBINS; do echo "| $p"; done) | shuf -r -n "$COUNT")"
+eval $cmd
