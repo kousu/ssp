@@ -13,8 +13,10 @@ set -o pipefail
 # Most of them should be one-time and/or encrypted pastebins.
 
 function dpaste {
-et the #  https://dpaste.de - one time pastes (though mostly targetted at programmers)
-  curl -F 'expires=onetime' -F 'content=<-' -F 'format=url' https://dpaste.de/api/
+  #https://dpaste.de - one time pastes (though mostly targetted at programmers)
+  note_link=$(curl -s -F 'expires=onetime' -F 'lexer=_text' -F 'content=<-' -F 'format=url' https://dpaste.de/api/)
+  curl -s "$note_link" >/dev/null # dpaste's "onetime" notes are actually "twotime" because they assume the first time is for showing the sender
+  echo "$note_link"
 }
 
 function privnote {
