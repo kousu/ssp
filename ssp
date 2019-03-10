@@ -31,7 +31,7 @@ function privnote {
   # > Using -iter or -pbkdf2 would be better.
   # but using those seems to be incompatible with privnote?
   # and you can't seem to specify -md sha256 without breaking it either.
-  data=$(cat - | password="$password" openssl enc -e -aes-256-cbc -pass env:password -a -md md5)
+  data=$(cat - | password="$password" openssl enc -e -aes-256-cbc -pass env:password -a -md md5 2>/dev/null)
 
   # TODO: privnote has started using https://privnote.com/legacy/ as of 2019, which suggests they're changing their algorithm
   note_link=$(curl -s 'https://privnote.com/' \
