@@ -13,7 +13,7 @@ set -e
 #set -x # DEBUG
 set -o pipefail
 
-COUNT=5
+COUNT=$(($RANDOM % 12) + 3)
 
 # make apaste visible, for riseup
 # note: this makes this whole thing uninstallable globally.
