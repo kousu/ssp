@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "apaste": "git+https://0xacab.org/riseup/share/up1-cli-client-nodejs.git"
+  }
+}

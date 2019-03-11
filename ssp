@@ -15,6 +15,9 @@ set -o pipefail
 
 COUNT=5
 
+# make apaste visible, for riseup
+# note: this makes this whole thing uninstallable globally.
+PATH=$(cd $(dirname "$0"); pwd)/node_modules/.bin/:$PATH
 
 ##########
 # helpers
@@ -112,6 +115,10 @@ function privnote {
 
 
 function riseup {
+  
+  apaste
+  exit 0
+
   # https://share.riseup.net - end-to-end-encrypted, self-destructing notes and files
   # this is actually https://github.com/Upload/Up1, but Up1 doesn;'t maintain
   
@@ -174,7 +181,7 @@ function mega {
 }
 
 
-PASTEBINS="dpaste privnote"
+PASTEBINS="dpaste privnote riseup"
 
 #########
 # construct a randomized pipeline of the pastebins (chosen with replacement)
