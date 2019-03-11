@@ -60,6 +60,7 @@ function base64up1 {
 
 function dpaste {
   #https://dpaste.de - one time pastes (though mostly targetted at programmers)
+  # TODO feature idea: use lexer=_markdown to make the chained links clickable; but this has to be disabled when dpaste is used for the real message, so that's complicated.
   note_link=$(curl -s -F 'expires=onetime' -F 'lexer=_text' -F 'content=<-' -F 'format=url' https://dpaste.de/api/)
   curl -s "$note_link" >/dev/null # dpaste's "onetime" notes are actually "twotime" because they assume the first time is for showing the sender
   echo "$note_link"
