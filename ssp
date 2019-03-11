@@ -19,6 +19,26 @@ COUNT=5
 ##########
 # helpers
 
+if ! which shuf >/dev/null; then
+  function shuf {
+    # only implement the args we use:
+    _r="$1"; shift;
+    if [ "$_r" = "-r" ]; then
+      echo "Invalid argument" >&2
+      exit 1
+    fi
+    _n="$1"; shift
+    if [ "$_n" = "-n" ]; then
+      echo "Invalid argument" >&2
+      exit 1
+    fi
+    count="$1"; shift
+    echo "Not Implemented"
+    exit 1
+  }
+fi
+
+
 # here's some helpers for handling binary data
 
 function unhexlify {
