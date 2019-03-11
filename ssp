@@ -1,5 +1,9 @@
 #!/bin/sh
-# dependencies: openssl, curl, jq
+# Super Secure Pastes: chain together a series of self-destructing pastebins in order to send a note.
+# in other words: recursive privnote.com.
+# Optionally uploading can be done over tor.
+#
+# dependencies: openssl, curl, base64, jq
 
 # TODO: tor 
 # TODO: share.riseup.net
@@ -10,6 +14,46 @@ set -e
 set -o pipefail
 
 COUNT=5
+
+
+##########
+# helpers
+
+# here's some helpers for handling binary data
+
+function unhexlify {
+  # `xxd -r` implemented in pure shell
+  # http://xensoft.com/use-sed-to-insert-text-every-n-lines-characters/
+  printf "$(sed 's/.\{2\}/\\x&/g')"
+}
+
+function hexlify {
+  # `xxd` implmented in pure shell
+  echo "Not Implemented"
+  exit 1
+  #hexdump -f ???
+}
+
+function base64url {
+  # urlsafe base64 encoding
+  if [ "$1" = "-D" ]; then
+    # decode
+    # XXX `tr` possibly not necessary? It seems that `base64` can handle the URL variant natively.
+    tr '_-' '/+' | base64 -D
+  else
+    # encode
+    base64 | tr '/+' '_-'
+  fi
+}
+
+function base64up1 {
+  # base64 as used in up1: base64url but with padding stripped
+  base64url | tr -d '='
+}
+
+
+###########
+# Encoders
 
 ## Each of these functions takes a message to upload on stdin and outputs its URL on stdout
 # Most of them should be one-time and/or encrypted pastebins.
@@ -43,6 +87,69 @@ function privnote {
     | jq -r '.note_link')
   note_link="${note_link}#${password}"
   echo $note_link
+}
+
+
+function riseup {
+  # https://share.riseup.net - end-to-end-encrypted, self-destructing notes and files
+  # this is actually https://github.com/Upload/Up1, but Up1 doesn;'t maintain
+  
+  API_KEY="59Mnk5nY6eCn4bi9GvfOXhMH54E7Bh6EMJXtyJfs" # extracted from sniffing requests to share.riseup.net
+
+  # this uploader was ported from this javascript client: https://0xacab.org/riseup/share/up1-cli-client-nodejs/blob/master/upclient.js
+  # which is itself a (minor) fork of https://github.com/Upload/upclient/blob/master/upclient.js
+
+  # the seed is a random 128 bit number
+  # which is used to generate the upload ident key and also the encryption key (and also the encryption IV)
+  # Note: handling binary is tricky in shell, so instead we encode everything as hex; indeed, this is what `openssl enc` wants its binary inputs to be wrapped in anyway.
+  seed=$(openssl rand -hex 16)
+
+  # then we keystretch by using one round of sha512
+  # this gives 512 bits, aka 64 bytes, aka *128 hex digits*, which is the unit we work in.
+  params=$(echo $seed | unhexlify | openssl dgst -sha512 -hex | cut -d " " -f 2) # NB: the `cut` is because dgst -hex insists on prefixing "(stdin)= " onto things
+  
+  # the AES key is the first half
+  key=$(echo $params | cut -c 1-64)
+  # iv is the next quarter
+  iv=$(echo $params | cut -c 65-96)
+  # ident is the last quarter; this is the ID to upload under; also it's in base64. also the padding at the end is cropped for some reason ( see  https://github.com/Upload/Up1/blob/9fc501783bb0510b67a99d36a3cdc852cef47f5d/server/server.go#L132 ).
+  ident=$(echo $params | cut -c 97-128 | unhexlify | base64up1)
+
+  # TODO: what is the difference between openssl enc -k and openssl env -K? Especially, is openssl enc -k *compatible* with Up1? maybe we can avoid
+
+  # the encryption is AES in CCM mode: https://share.riseup.net/js/encryption.js
+  # (which is not compatible with `openssl enc`, which "does not support authenticated encryption modes like CCM and GCM." :/)
+  # and it has a header prepended, separated by two nulls.
+  response=$(
+  (echo '{"mime": "text/plain", "name": "link.url"}'; printf "\0\0"; cat -) \
+  | openssl enc -e -aes-256-cbc -K "$key" -iv "$iv" 2>/dev/null \
+  | curl -s 'https://share.riseup.net/up' \
+       -H 'Referer: https://share.riseup.net/' \
+       -H 'X-Requested-With: XMLHttpRequest' \
+       -H 'Accept: application/json' \
+       --compressed \
+       -F "api_key=${API_KEY}" \
+       -F "ident=${ident}" \
+       -F 'file=@-;filename="blob"'
+  )
+
+  #echo "$response"
+  # the only return from Up1 is the deletion key; but we ignore that, because we're going to forget this interaction entirely.
+  # Up1 deletes files after a week. So it's not as good as privnote or dpaste.
+  error=$(echo "$response" | jq -r '.error')
+  if [ "$error" != "null" ]; then
+    echo "$error"
+    exit 1;
+  fi
+
+  seed=$(echo $seed | unhexlify | base64up1) # hex -> base64 the seed
+  echo "https://share.riseup.net/#${seed}"
+}
+
+function mega {
+  # https://mega.co.nz
+  echo "Not Implmented" >&2
+  exit 1
 }
 
 
